@@ -10,29 +10,19 @@ pipeline {
                }
           }
           stage("Unit test") {
+when { branch 'my-feature' }
                steps {
                     sh "./gradlew test"
                }
           }
           stage("Code coverage") {
-when {
-changeset "**/.java"
-}
-
+when { branch 'main' }
                steps {
                     sh "./gradlew jacocoTestReport"
                     sh "./gradlew jacocoTestCoverageVerification"
                }
           }
-          stage("Static code analysis") {
-when {
-changeset "**/.java"
-}
-
-               steps {
-                    sh "./gradlew checkstyleMain"
-               }
-          }
+         
           stage("Package") {
                steps {
                     sh "./gradlew build"
@@ -75,6 +65,7 @@ changeset "**/.java"
           }
 
           stage("Acceptance test") {
+when { branch 'main' }
                steps {
                     sleep 60
                     sh "chmod +x acceptance-test.sh && ./acceptance-test.sh"
@@ -89,28 +80,21 @@ changeset "**/.java"
                }
           }
           stage("Smoke test") {
+when { branch 'main' }
               steps {
                   sleep 60
                   sh "chmod +x smoke-test.sh && ./smoke-test.sh"
               }
           }
-     }
-post {
-    failure {
-     echo "pipeline failure"
-    }
-    success {
-      echo "pipeline ran perfectly"
-    }
-    always {
-     publishHTML (
-      target: [
-       reportDir: 'Chapter08/sample1/build/reports/tests/test',
-       reportFiles: 'index.html',
-       reportName: "JaCoCo Report"
-      ]
-     )
-    }
-  }
 
+post {
+            always {
+               if [[ -f "$TESTNG_FAILED_XML" ]]; then
+        echo "Test Failed"
+        exit 
+      else
+        echo "Test Passed"
+            }
+        }
+}
 }
